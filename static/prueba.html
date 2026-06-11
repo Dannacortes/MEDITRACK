@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PRUEBA - Firebase MEDITRACK</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: white; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .success { color: #4CAF50; }
+        .error { color: #ff4444; }
+        pre { background: #2d2d2d; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 PRUEBA DE CONEXIÓN FIREBASE</h1>
+
+    <div id="status">🔄 Verificando conexión...</div>
+
+    <hr>
+
+    <h2>📝 Registro de usuario</h2>
+    <input type="text" id="regEmail" placeholder="correo@ejemplo.com" style="padding: 8px; width: 250px;">
+    <input type="password" id="regPass" placeholder="contraseña" style="padding: 8px;">
+    <button onclick="registrar()">Registrar Usuario</button>
+
+    <hr>
+
+    <h2>🔐 Inicio de sesión</h2>
+    <input type="text" id="loginEmail" placeholder="correo@ejemplo.com" style="padding: 8px; width: 250px;">
+    <input type="password" id="loginPass" placeholder="contraseña" style="padding: 8px;">
+    <button onclick="login()">Iniciar Sesión</button>
+    <button onclick="logout()">Cerrar Sesión</button>
+
+    <hr>
+
+    <h2>💾 Escribir en Base de Datos</h2>
+    <button onclick="escribirDatos()">Escribir datos de prueba</button>
+
+    <hr>
+
+    <h2>📖 Leer de Base de Datos</h2>
+    <button onclick="leerDatos()">Leer datos</button>
+
+    <hr>
+
+    <h2>📋 LOG DE ACTIVIDAD</h2>
+    <pre id="log" style="height: 300px; overflow-y: scroll;"></pre>
+
+    <script>
+        // CONFIGURACIÓN DE FIREBASE - TUS DATOS REALES
+        const firebaseConfig = {
+            apiKey: "AIzaSyAjeUvC7ZIR7WfLDINNEoaU9TanpqxsHAk",
+            authDomain: "meditrack-dfccb.firebaseapp.com",
+            databaseURL: "https://meditrack-dfccb-default-rtdb.firebaseio.com",
+            projectId: "meditrack-dfccb",
+            storageBucket: "meditrack-dfccb.firebasestorage.app",
+            messagingSenderId: "1097533589516",
+            appId: "1:1097533589516:web:6ea67d70486feb83648629"
+        };
+
+        // Inicializar
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+
+        // Función para mostrar logs
+        function log(mensaje, tipo = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const color = tipo === 'error' ? '#ff4444' : (tipo === 'success' ? '#4CAF50' : '#ffffff');
+            logDiv.innerHTML += `<div style="color: ${color}">[${time}] ${mensaje}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(mensaje);
+        }
+
+        // Verificar conexión
+        db.ref('.info/connected').on('value', (snap) => {
+            if (snap.val() === true) {
+                log('✅ Firebase CONECTADO correctamente', 'success');
+                document.getElementById('status').innerHTML = '✅ Conectado a Firebase';
+                document.getElementById('status').style.color = '#4CAF50';
+            } else {
+                log('❌ Firebase DESCONECTADO', 'error');
+                document.getElementById('status').innerHTML = '❌ Desconectado de Firebase';
+                document.getElementById('status').style.color = '#ff4444';
+            }
+        });
+
+        // Escuchar cambios en autenticación
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                log(`👤 Usuario autenticado: ${user.email}`, 'success');
+            } else {
+                log('👤 No hay usuario autenticado', 'info');
+            }
+        });
+
+        // FUNCIÓN DE REGISTRO
+        async function registrar() {
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPass').value;
+
+            if (!email || !password) {
+                log('❌ Ingresa email y contraseña', 'error');
+                return;
+            }
+
+            log(`📝 Intentando registrar: ${email}`);
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                log(`✅ Usuario registrado exitosamente: ${userCredential.user.email}`, 'success');
+
+                // Guardar datos adicionales
+                await db.ref(`users/${userCredential.user.uid}/profile`).set({
+                    email: email,
+                    createdAt: Date.now()
+                });
+                log(`✅ Perfil guardado en base de datos`, 'success');
+
+            } catch (error) {
+                log(`❌ Error en registro: ${error.message}`, 'error');
+            }
+        }
+
+        // FUNCIÓN DE LOGIN
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPass').value;
+
+            if (!email || !password) {
+                log('❌ Ingresa email y contraseña', 'error');
+                return;
+            }
+
+            log(`🔐 Intentando iniciar sesión: ${email}`);
+
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                log(`✅ Sesión iniciada: ${userCredential.user.email}`, 'success');
+            } catch (error) {
+                log(`❌ Error en login: ${error.message}`, 'error');
+            }
+        }
+
+        // FUNCIÓN DE LOGOUT
+        async function logout() {
+            try {
+                await auth.signOut();
+                log('✅ Sesión cerrada', 'success');
+            } catch (error) {
+                log(`❌ Error al cerrar sesión: ${error.message}`, 'error');
+            }
+        }
+
+        // FUNCIÓN PARA ESCRIBIR DATOS
+        async function escribirDatos() {
+            const user = auth.currentUser;
+
+            if (!user) {
+                log('❌ Debes iniciar sesión primero', 'error');
+                return;
+            }
+
+            log(`💾 Escribiendo datos de prueba para usuario: ${user.uid}`);
+
+            try {
+                const testRef = db.ref(`users/${user.uid}/test`);
+                await testRef.set({
+                    mensaje: "Hola desde prueba.html",
+                    timestamp: Date.now(),
+                    fecha: new Date().toISOString()
+                });
+                log(`✅ Datos escritos correctamente en users/${user.uid}/test`, 'success');
+            } catch (error) {
+                log(`❌ Error al escribir: ${error.message}`, 'error');
+            }
+        }
+
+        // FUNCIÓN PARA LEER DATOS
+        async function leerDatos() {
+            const user = auth.currentUser;
+
+            if (!user) {
+                log('❌ Debes iniciar sesión primero', 'error');
+                return;
+            }
+
+            log(`📖 Leyendo datos de prueba para usuario: ${user.uid}`);
+
+            try {
+                const snapshot = await db.ref(`users/${user.uid}/test`).once('value');
+                const data = snapshot.val();
+
+                if (data) {
+                    log(`📦 Datos encontrados: ${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    log(`📦 No hay datos en users/${user.uid}/test`, 'info');
+                }
+            } catch (error) {
+                log(`❌ Error al leer: ${error.message}`, 'error');
+            }
+        }
+
+        log('🚀 Página de prueba cargada. Esperando conexión a Firebase...', 'info');
+    </script>
+</body>
+</html>

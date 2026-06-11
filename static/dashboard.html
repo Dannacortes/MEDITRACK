@@ -11,7 +11,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <header class="main-header">
             <div class="logo">
                 <h1>💊 MEDITRACK</h1>
@@ -24,7 +23,6 @@
             </div>
         </header>
 
-        <!-- Estado del dispensador -->
         <section class="status-section">
             <h2>📡 Estado del Dispensador</h2>
             <div class="status-cards">
@@ -43,7 +41,6 @@
             </div>
         </section>
 
-        <!-- Compartimentos -->
         <section class="compartments-section">
             <h2>💊 Compartimentos</h2>
             <div class="compartments-grid" id="compartments-grid">
@@ -51,7 +48,6 @@
             </div>
         </section>
 
-        <!-- Alarmas activas -->
         <section class="alarms-section">
             <h2>⏰ Alarmas Programadas</h2>
             <div id="alarms-list" class="alarms-list">
@@ -59,7 +55,6 @@
             </div>
         </section>
 
-        <!-- Recordatorios del día -->
         <section class="reminders-section">
             <h2>📋 Recordatorios de Hoy</h2>
             <div id="reminders-list" class="reminders-list">
@@ -67,29 +62,26 @@
             </div>
         </section>
 
-        <!-- Acciones rápidas -->
         <section class="actions-section">
-            <button id="emergency-dispense" class="btn-emergency">
-                🚨 Dispensación de Emergencia
-            </button>
-            <button id="refresh-status" class="btn-refresh">
-                🔄 Refrescar Estado
-            </button>
+            <button id="emergency-dispense" class="btn-emergency">🚨 Dispensación de Emergencia</button>
+            <button id="refresh-status" class="btn-refresh">🔄 Refrescar Estado</button>
         </section>
 
-        <!-- Navegación -->
         <nav class="bottom-nav">
             <a href="dashboard.html" class="active">📊 Dashboard</a>
             <a href="medicamentos.html">💊 Medicamentos</a>
             <a href="historial.html">📜 Historial</a>
+            <a href="perfil.html">👤 Perfil</a>
         </nav>
     </div>
 
-    <script src="firebase/config.js"></script>
-    <script src="firebase/auth.js"></script>
-    <script src="firebase/medicamentos.js"></script>
-    <script src="firebase/alarmas.js"></script>
-    <script src="firebase/historial.js"></script>
-    <script src="app.js"></script>
+    <!-- RUTAS CORREGIDAS - Apuntan a static/js/ -->
+    <script src="pastillero/static/js/config.js"></script>
+    <script src="pastillero/static/js/auth.js"></script>
+    <script src="pastillero/static/js/medicamentos.js"></script>
+    <script src="pastillero/static/js/alarms.js"></script>
+    <script src="pastillero/static/js/historical.js"></script>
+    <script src="pastillero/static/js/contacto.js"></script>
+    <script src="pastillero/static/js/app.js"></script>
 </body>
 </html>

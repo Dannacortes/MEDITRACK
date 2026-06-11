@@ -1,111 +1,139 @@
-// ===== Gestión de Medicamentos =====
+// ===== GESTIÓN DE MEDICAMENTOS =====
+let currentMedUser = null;
 
-// Agregar medicamento
-async function addMedicine(medicineData) {
-    const userId = firebase.auth().currentUser.uid;
-    try {
-        const newMedicineRef = firebase.database().ref(`users/${userId}/medicines`).push();
-        await newMedicineRef.set({
-            ...medicineData,
-            createdAt: firebase.database.ServerValue.TIMESTAMP,
-            updatedAt: firebase.database.ServerValue.TIMESTAMP
-        });
+firebase.auth().onAuthStateChanged((user) => {
+    currentMedUser = user;
+    if (user && window.location.pathname.includes('medicamentos.html')) {
+        loadMedicinesList();
+    }
+});
 
-        // Crear alarmas automáticamente
-        await createAlarmsForMedicine(newMedicineRef.key, medicineData);
-
-        showNotification('Medicamento agregado correctamente', 'success');
-        return true;
-    } catch (error) {
-        console.error('Error al agregar medicamento:', error);
-        showNotification('Error al agregar medicamento', 'error');
-        return false;
+function showMedNotif(message, type = 'info') {
+    if (typeof window.showNotification === 'function') {
+        window.showNotification(message, type);
+    } else {
+        console.log(`[${type}] ${message}`);
+        const notif = document.createElement('div');
+        notif.className = `notification ${type}`;
+        notif.innerHTML = message;
+        document.body.appendChild(notif);
+        setTimeout(() => notif.remove(), 3000);
     }
 }
 
-// Crear alarmas para un medicamento
-async function createAlarmsForMedicine(medicineId, medicineData) {
-    const userId = firebase.auth().currentUser.uid;
-    const schedules = medicineData.schedules.split(',');
+window.addMedicine = async function(medicineData) {
+    if (!currentMedUser) {
+        showMedNotif('❌ Debes iniciar sesión', 'error');
+        return false;
+    }
 
-    for (const schedule of schedules) {
-        const time = schedule.trim();
-        await firebase.database().ref(`users/${userId}/alarms`).push({
-            medicineId: medicineId,
+    try {
+        const medicinesRef = firebase.database().ref(`users/${currentMedUser.uid}/medicines`);
+        const newRef = medicinesRef.push();
+        await newRef.set({
+            name: medicineData.name,
             compartment: medicineData.compartment,
-            time: time,
-            active: true,
+            quantity: medicineData.quantity,
+            unit: medicineData.unit,
+            dose: medicineData.dose,
+            schedules: medicineData.schedules,
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
-    }
-}
 
-// Actualizar medicamento
-async function updateMedicine(medicineId, medicineData) {
-    const userId = firebase.auth().currentUser.uid;
-    try {
-        await firebase.database().ref(`users/${userId}/medicines/${medicineId}`).update({
-            ...medicineData,
-            updatedAt: firebase.database.ServerValue.TIMESTAMP
-        });
-        showNotification('Medicamento actualizado', 'success');
+        const schedules = medicineData.schedules.split(',');
+        const alarmsRef = firebase.database().ref(`users/${currentMedUser.uid}/alarms`);
+        for (const time of schedules) {
+            await alarmsRef.push({
+                medicineId: newRef.key,
+                compartment: medicineData.compartment,
+                time: time.trim(),
+                active: true,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+
+        showMedNotif('✅ Medicamento agregado correctamente', 'success');
+        loadMedicinesList();
         return true;
     } catch (error) {
-        console.error('Error al actualizar:', error);
+        console.error('Error al agregar:', error);
+        showMedNotif('❌ Error al agregar medicamento', 'error');
         return false;
     }
+};
+
+async function loadMedicinesList() {
+    if (!currentMedUser) return;
+
+    const snapshot = await firebase.database().ref(`users/${currentMedUser.uid}/medicines`).once('value');
+    const grid = document.getElementById('medicines-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    if (!snapshot.exists()) {
+        grid.innerHTML = '<div class="no-data">No hay medicamentos. Haz clic en "+ ADD" para agregar.</div>';
+        return;
+    }
+
+    snapshot.forEach((child) => {
+        const med = { id: child.key, ...child.val() };
+        const card = document.createElement('div');
+        card.className = 'medicine-card';
+        card.innerHTML = `
+            <div class="medicine-name">${escapeHtml(med.name)}</div>
+            <div class="medicine-details">
+                📦 Compartimento: ${med.compartment}<br>
+                💊 Cantidad: ${med.quantity} ${med.unit}<br>
+                💉 Dosis: ${med.dose} ${med.unit}<br>
+                ⏰ Horarios: ${med.schedules}
+            </div>
+            <div class="medicine-actions">
+                <button onclick="deleteMedicine('${med.id}')" class="btn-delete">🗑️ Eliminar</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
 }
 
-// Eliminar medicamento
-async function deleteMedicine(medicineId) {
-    const userId = firebase.auth().currentUser.uid;
-    if (!confirm('¿Eliminar este medicamento? También se eliminarán sus alarmas')) {
-        return false;
-    }
+window.deleteMedicine = async function(medicineId) {
+    if (!currentMedUser) return;
+    if (!confirm('¿Eliminar este medicamento? También se eliminarán sus alarmas')) return;
 
     try {
-        // Eliminar medicamento
-        await firebase.database().ref(`users/${userId}/medicines/${medicineId}`).remove();
+        await firebase.database().ref(`users/${currentMedUser.uid}/medicines/${medicineId}`).remove();
 
-        // Eliminar alarmas asociadas
-        const alarmsSnapshot = await firebase.database().ref(`users/${userId}/alarms`)
+        const alarmsSnapshot = await firebase.database().ref(`users/${currentMedUser.uid}/alarms`)
             .orderByChild('medicineId')
             .equalTo(medicineId)
             .once('value');
 
         const updates = {};
         alarmsSnapshot.forEach((child) => {
-            updates[`users/${userId}/alarms/${child.key}`] = null;
+            updates[`users/${currentMedUser.uid}/alarms/${child.key}`] = null;
         });
         await firebase.database().ref().update(updates);
 
-        showNotification('Medicamento eliminado', 'success');
-        return true;
+        showMedNotif('✅ Medicamento eliminado', 'success');
+        loadMedicinesList();
     } catch (error) {
         console.error('Error al eliminar:', error);
-        return false;
+        showMedNotif('❌ Error al eliminar', 'error');
     }
+};
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
-// Event listener para formulario de medicamentos
-document.addEventListener('DOMContentLoaded', () => {
-    const addMedicineForm = document.getElementById('add-medicine-form');
-    if (addMedicineForm) {
-        addMedicineForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const medicineData = {
-                name: document.getElementById('med-name').value,
-                compartment: parseInt(document.getElementById('med-compartment').value),
-                quantity: parseInt(document.getElementById('med-quantity').value),
-                unit: document.getElementById('med-unit').value,
-                dose: parseFloat(document.getElementById('med-dose').value),
-                frequency: parseInt(document.getElementById('med-frequency').value),
-                schedules: document.getElementById('med-schedules').value
-            };
-            await addMedicine(medicineData);
-            addMedicineForm.reset();
-            // Recargar la página para mostrar cambios
-            window.location.reload();
-        });
+firebase.auth().onAuthStateChanged((user) => {
+    currentMedUser = user;
+    if (user && window.location.pathname.includes('medicamentos.html')) {
+        loadMedicinesList();
     }
 });

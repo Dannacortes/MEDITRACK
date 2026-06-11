@@ -746,8 +746,21 @@ function setupPanneauSearch() {
             showToast(`❌ Lote ${val} no encontrado`);
         }
     });
-}
 
+}
+// De tu archivo script.js - ¡Esto es lo que necesitas!
+let perfil = {
+    paciente: { nombre: '', telefono: '' },
+    contacto: { nombre: '', telefono: '' },  // ← ¡Aquí está el contacto!
+    registrado: false
+};
+function enviarNotificacionContacto(notificacion) {
+    console.log('📱 NOTIFICACIÓN ENVIADA AL CONTACTO:', {
+        contacto: perfil.contacto.nombre,
+        telefono: perfil.contacto.telefono,
+        ...notificacion
+    });
+}
 // Inicializar todo
 generatePanneauNumbers();
 setupPanneauSearch();

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEDITRACK - Mi Perfil</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="main-header">
+            <div class="logo">
+                <h1>💊 MEDITRACK</h1>
+                <p>Configuración de contacto</p>
+            </div>
+            <div class="user-info">
+                <span id="user-name"></span>
+                <span id="user-email"></span>
+                <button id="logout-btn" class="btn-logout">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <section id="profile-form-section">
+            <h2>👤 Datos del Paciente</h2>
+            <div class="form-card">
+                <div class="form-group">
+                    <label>Nombre completo del paciente</label>
+                    <input type="text" id="paciente-nombre" placeholder="Ej: María González" required>
+                </div>
+                <div class="form-group">
+                    <label>📞 Teléfono del paciente</label>
+                    <input type="tel" id="paciente-telefono" placeholder="+57 300 123 4567">
+                </div>
+            </div>
+
+            <h2>👥 Contacto de emergencia</h2>
+            <div class="form-card">
+                <div class="form-group">
+                    <label>Nombre del contacto</label>
+                    <input type="text" id="contacto-nombre" placeholder="Ej: Carlos González" required>
+                </div>
+                <div class="form-group">
+                    <label>📞 Teléfono del contacto</label>
+                    <input type="tel" id="contacto-telefono" placeholder="+57 300 765 4321" required>
+                </div>
+                <div class="form-group">
+                    <label>📧 Correo del contacto</label>
+                    <input type="email" id="contacto-email" placeholder="contacto@ejemplo.com">
+                </div>
+            </div>
+
+            <button id="guardar-contacto" class="btn-primary btn-block">💾 Guardar Contacto</button>
+        </section>
+
+        <section id="contact-preview" style="display: none;">
+            <h2>📇 Contacto guardado</h2>
+            <div class="info-card">
+                <p><strong>👤 Paciente:</strong> <span id="preview-paciente-nombre"></span></p>
+                <p><strong>📞 Teléfono:</strong> <span id="preview-paciente-telefono"></span></p>
+                <p><strong>👥 Contacto:</strong> <span id="preview-contacto-nombre"></span></p>
+                <p><strong>📞 Teléfono:</strong> <span id="preview-contacto-telefono"></span></p>
+                <p><strong>📧 Email:</strong> <span id="preview-contacto-email"></span></p>
+            </div>
+            <button id="edit-profile-btn" class="btn-secondary">✏️ Editar</button>
+        </section>
+
+        <nav class="bottom-nav">
+            <a href="dashboard.html">📊 Dashboard</a>
+            <a href="medicamentos.html">💊 Medicamentos</a>
+            <a href="historial.html">📜 Historial</a>
+            <a href="perfil.html" class="active">👤 Perfil</a>
+        </nav>
+    </div>
+
+    <!-- RUTAS CORREGIDAS -->
+    <script src="pastillero/static/js/config.js"></script>
+    <script src="pastillero/static/js/auth.js"></script>
+    <script src="pastillero/static/js/contacto.js"></script>
+    <script src="pastillero/static/js/app.js"></script>
+</body>
+</html>

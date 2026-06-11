@@ -1,3 +1,21 @@
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--gray-dark);
+    border-left: 4px solid var(--primary);
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1100;
+    animation: slideIn 0.3s ease;
+}
+
+.notification.success { border-left-color: #4CAF50; background: #2e7d32; color: white; }
+.notification.warning { border-left-color: #ff9800; background: #e65100; color: white; }
+.notification.error { border-left-color: #ff4444; background: #c62828; color: white; }
+.notification.info { border-left-color: var(--primary); background: var(--gray-dark); color: white; }
+
 /* ===== MEDITRACK - ESTILOS COMPLETOS ===== */
 :root {
     --primary: #235afd;

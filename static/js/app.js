@@ -1,51 +1,45 @@
-// ===== MEDITRACK - LÓGICA PRINCIPAL =====
-let currentUser = null;
-let medicines = [];
-let alarms = [];
+// ===== MEDITRACK - APP PRINCIPAL =====
 
-// Mostrar notificación temporal
-function showNotification(message, type = 'info') {
+window.showNotification = function(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.innerHTML = message;
     document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+    console.log(`[${type}] ${message}`);
+};
 
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-// Cargar nombre del usuario
-async function loadUserName() {
-    if (!currentUser) return;
-
-    try {
-        const snapshot = await firebase.database().ref(`users/${currentUser.uid}/profile`).once('value');
-        const profile = snapshot.val();
-        const userNameSpan = document.getElementById('user-name');
-        if (userNameSpan && profile) {
-            userNameSpan.textContent = `👋 ${profile.fullname}`;
-            userNameSpan.style.display = 'block';
-            userNameSpan.style.color = '#00c4ff';
-        }
-    } catch (error) {
-        console.error('Error loading user name:', error);
-    }
-}
-
-// Cargar dashboard
-async function loadDashboard() {
-    if (!currentUser) {
-        console.log('No hay usuario logueado');
+window.dispenseNow = async function(compartment) {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        window.showNotification('❌ Usuario no autenticado', 'error');
         return;
     }
 
-    const userId = currentUser.uid;
+    window.showNotification(`⏳ Dispensando compartimento ${compartment}...`, 'warning');
+    try {
+        await firebase.database().ref('dispenser/commands').set({
+            action: 'dispense',
+            compartment: compartment,
+            timestamp: Date.now(),
+            userId: user.uid
+        });
+        window.showNotification(`✅ Compartimento ${compartment} dispensado`, 'success');
+    } catch (error) {
+        console.error('Error:', error);
+        window.showNotification('❌ Error al dispensar', 'error');
+    }
+};
+
+async function loadDashboard() {
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+
+    const userId = user.uid;
 
     try {
-        // Cargar medicamentos
         const medSnapshot = await firebase.database().ref(`users/${userId}/medicines`).once('value');
-        medicines = [];
+        const medicines = [];
         medSnapshot.forEach((child) => {
             medicines.push({ id: child.key, ...child.val() });
         });
@@ -53,20 +47,17 @@ async function loadDashboard() {
         const medCountElem = document.getElementById('med-count');
         if (medCountElem) medCountElem.textContent = medicines.length;
 
-        // Cargar alarmas
         const alarmSnapshot = await firebase.database().ref(`users/${userId}/alarms`).once('value');
-        alarms = [];
+        const alarms = [];
         alarmSnapshot.forEach((child) => {
             alarms.push({ id: child.key, ...child.val() });
         });
 
-        // Actualizar UI
-        updateCompartments();
-        updateAlarmsList();
-        updateReminders();
-        updateNextDose();
+        updateCompartments(medicines);
+        updateAlarmsList(alarms, medicines);
+        updateReminders(alarms, medicines);
+        updateNextDose(alarms);
 
-        // Estado del dispensador
         const statusSnapshot = await firebase.database().ref('dispenser/status').once('value');
         const status = statusSnapshot.val() || {};
         const wifiStatusElem = document.getElementById('wifi-status');
@@ -74,28 +65,80 @@ async function loadDashboard() {
             wifiStatusElem.innerHTML = status.connected ? '✅ Conectado' : '❌ Desconectado';
             wifiStatusElem.style.color = status.connected ? '#4CAF50' : '#ff4444';
         }
-
     } catch (error) {
         console.error('Error loading dashboard:', error);
-        showNotification('Error al cargar datos', 'error');
+        window.showNotification('Error al cargar datos', 'error');
     }
 }
 
-// Actualizar lista de recordatorios del día
-function updateReminders() {
+function updateCompartments(medicines) {
+    const grid = document.getElementById('compartments-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    for (let i = 1; i <= 4; i++) {
+        const med = medicines.find(m => m.compartment === i);
+        const card = document.createElement('div');
+        card.className = 'compartment-card';
+
+        let statusText = 'Vacío';
+        let statusColor = '#666';
+        if (med) {
+            if (med.quantity > 10) {
+                statusText = '✅ Disponible';
+                statusColor = '#4CAF50';
+            } else if (med.quantity > 0) {
+                statusText = `⚠️ Quedan ${med.quantity}`;
+                statusColor = '#ff9800';
+            } else {
+                statusText = '❌ Agotado';
+                statusColor = '#ff4444';
+            }
+        }
+
+        card.innerHTML = `
+            <div class="compartment-number">Compartimento ${i}</div>
+            <div class="compartment-medicine">${med ? med.name : '---'}</div>
+            <div style="color: ${statusColor}; margin-top: 10px; font-size: 0.9em;">${statusText}</div>
+        `;
+        grid.appendChild(card);
+    }
+}
+
+function updateAlarmsList(alarms, medicines) {
+    const list = document.getElementById('alarms-list');
+    if (!list) return;
+
+    if (alarms.length === 0) {
+        list.innerHTML = '<p class="no-data">No hay alarmas programadas</p>';
+        return;
+    }
+
+    list.innerHTML = '';
+    alarms.forEach(alarm => {
+        const med = medicines.find(m => m.id === alarm.medicineId);
+        const item = document.createElement('div');
+        item.className = 'alarm-item';
+        item.innerHTML = `
+            <div class="alarm-time">⏰ ${alarm.time}</div>
+            <div><strong>${med ? med.name : 'Medicamento'}</strong></div>
+            <div>📦 Compartimento ${alarm.compartment}</div>
+            <button onclick="dispenseNow(${alarm.compartment})" class="btn-small">Dispensar</button>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function updateReminders(alarms, medicines) {
     const remindersList = document.getElementById('reminders-list');
     if (!remindersList) return;
 
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTime = currentHour * 60 + currentMinute;
+    const currentTime = now.getHours() * 60 + now.getMinutes();
 
-    // Filtrar alarmas para hoy (próximas 24 horas)
     const upcomingAlarms = alarms.filter(alarm => {
         const [hours, minutes] = alarm.time.split(':');
         const alarmTime = parseInt(hours) * 60 + parseInt(minutes);
-        // Mostrar alarmas que aún no han pasado hoy
         return alarmTime > currentTime;
     }).sort((a, b) => {
         const [ah, am] = a.time.split(':');
@@ -130,74 +173,7 @@ function updateReminders() {
     });
 }
 
-// Actualizar compartimentos
-function updateCompartments() {
-    const grid = document.getElementById('compartments-grid');
-    if (!grid) return;
-
-    grid.innerHTML = '';
-    for (let i = 1; i <= 4; i++) {
-        const med = medicines.find(m => m.compartment === i);
-        const card = document.createElement('div');
-        card.className = 'compartment-card';
-        card.onclick = () => showCompartmentDetails(i);
-
-        let statusText = 'Vacío';
-        let statusColor = '#666';
-        if (med) {
-            if (med.quantity > 10) {
-                statusText = '✅ Disponible';
-                statusColor = '#4CAF50';
-            } else if (med.quantity > 0) {
-                statusText = `⚠️ Quedan ${med.quantity}`;
-                statusColor = '#ff9800';
-            } else {
-                statusText = '❌ Agotado';
-                statusColor = '#ff4444';
-            }
-        }
-
-        card.innerHTML = `
-            <div class="compartment-number">Compartimento ${i}</div>
-            <div class="compartment-medicine">${med ? med.name : '---'}</div>
-            <div style="color: ${statusColor}; margin-top: 10px; font-size: 0.9em;">${statusText}</div>
-        `;
-        grid.appendChild(card);
-    }
-}
-
-// Actualizar lista de alarmas
-function updateAlarmsList() {
-    const list = document.getElementById('alarms-list');
-    if (!list) return;
-
-    if (alarms.length === 0) {
-        list.innerHTML = '<p class="no-data">No hay alarmas programadas. Agrega medicamentos desde la sección "Medicamentos".</p>';
-        return;
-    }
-
-    list.innerHTML = '';
-    alarms.forEach(alarm => {
-        const med = medicines.find(m => m.id === alarm.medicineId);
-        const [hours, minutes] = alarm.time.split(':');
-        const hour12 = hours % 12 || 12;
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-
-        const item = document.createElement('div');
-        item.className = 'alarm-item';
-        item.innerHTML = `
-            <div class="alarm-time">⏰ ${hour12}:${minutes} ${ampm}</div>
-            <div><strong>${med ? med.name : 'Medicamento'}</strong></div>
-            <div>📦 Compartimento ${alarm.compartment}</div>
-            <div>💊 ${med ? `${med.dose} ${med.unit}` : ''}</div>
-            <button onclick="dispenseNow(${alarm.compartment})" class="btn-small">Dispensar</button>
-        `;
-        list.appendChild(item);
-    });
-}
-
-// Actualizar próxima dosis
-function updateNextDose() {
+function updateNextDose(alarms) {
     const nextDoseElem = document.getElementById('next-dose');
     if (!nextDoseElem) return;
 
@@ -233,126 +209,25 @@ function updateNextDose() {
     }
 }
 
-// Dispensar ahora
-async function dispenseNow(compartment) {
-    if (!currentUser) {
-        showNotification('❌ Usuario no autenticado', 'error');
-        return;
-    }
-
-    showNotification(`⏳ Dispensando compartimento ${compartment}...`, 'warning');
-    try {
-        await firebase.database().ref('dispenser/commands').set({
-            action: 'dispense',
-            compartment: compartment,
-            timestamp: Date.now(),
-            userId: currentUser.uid
-        });
-        showNotification(`✅ Compartimento ${compartment} dispensado correctamente`, 'success');
-    } catch (error) {
-        console.error('Error:', error);
-        showNotification('❌ Error al dispensar', 'error');
-    }
-}
-
-// Mostrar detalles del compartimento
-function showCompartmentDetails(compartment) {
-    const med = medicines.find(m => m.compartment === compartment);
-    if (med) {
-        showNotification(`${med.name} - Compartimento ${compartment}: ${med.quantity} ${med.unit} restantes`, 'info');
-    } else {
-        showNotification(`Compartimento ${compartment} está vacío`, 'warning');
-    }
-}
-
-// Configurar event listeners
-function setupDashboardEventListeners() {
-    // Refrescar estado
-    const refreshBtn = document.getElementById('refresh-status');
-    if (refreshBtn) {
-        refreshBtn.onclick = () => {
-            showNotification('🔄 Actualizando datos...', 'info');
-            loadDashboard();
-        };
-    }
-
-    // Dispensación de emergencia
-    const emergencyBtn = document.getElementById('emergency-dispense');
-    if (emergencyBtn) {
-        emergencyBtn.onclick = () => {
-            if (confirm('⚠️ ¿Estás seguro de que quieres dispensar TODOS los medicamentos? Esta acción no se puede deshacer.')) {
-                for (let i = 1; i <= 4; i++) {
-                    setTimeout(() => dispenseNow(i), i * 500);
-                }
-            }
-        };
-    }
-}
-
-// Escuchar cambios en tiempo real
-function startRealtimeUpdates() {
-    if (!currentUser) return;
-
-    // Escuchar cambios en alarmas
-    const alarmsRef = firebase.database().ref(`users/${currentUser.uid}/alarms`);
-    alarmsRef.on('value', () => {
-        loadDashboard();
-    });
-
-    // Escuchar cambios en medicamentos
-    const medicinesRef = firebase.database().ref(`users/${currentUser.uid}/medicines`);
-    medicinesRef.on('value', () => {
-        loadDashboard();
-    });
-
-    // Escuchar comandos del dispensador
-    const statusRef = firebase.database().ref('dispenser/status');
-    statusRef.on('value', (snapshot) => {
-        const status = snapshot.val();
-        if (status && status.lastDispense && status.lastDispense > Date.now() - 5000) {
-            showNotification(`✅ Medicamento dispensado del compartimento ${status.lastCompartment}`, 'success');
-            loadDashboard();
-        }
-    });
-}
-
-// Inicializar dashboard
-function initDashboard() {
-    setupDashboardEventListeners();
-    loadDashboard();
-    startRealtimeUpdates();
-}
-
-// Verificar autenticación y cargar dashboard
+// Inicializar dashboard si estamos en dashboard.html
 document.addEventListener('DOMContentLoaded', () => {
-    firebase.auth().onAuthStateChanged(async (user) => {
-        if (user) {
-            currentUser = user;
+    if (window.location.pathname.includes('dashboard.html')) {
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                loadDashboard();
 
-            // Mostrar email del usuario
-            const userEmailElem = document.getElementById('user-email');
-            if (userEmailElem) {
-                userEmailElem.textContent = user.email;
-                userEmailElem.style.fontSize = '0.9em';
-                userEmailElem.style.color = '#aaa';
+                // Escuchar cambios en tiempo real
+                const userId = user.uid;
+                firebase.database().ref(`users/${userId}/medicines`).on('value', () => loadDashboard());
+                firebase.database().ref(`users/${userId}/alarms`).on('value', () => loadDashboard());
+                firebase.database().ref('dispenser/status').on('value', (snapshot) => {
+                    const status = snapshot.val();
+                    if (status && status.lastDispense && status.lastDispense > Date.now() - 5000) {
+                        window.showNotification(`✅ Medicamento dispensado del compartimento ${status.lastCompartment}`, 'success');
+                        loadDashboard();
+                    }
+                });
             }
-
-            // Cargar nombre del usuario
-            await loadUserName();
-
-            // Inicializar dashboard
-            initDashboard();
-
-        } else {
-            // No hay usuario, redirigir a login
-            const currentPath = window.location.pathname;
-            if (!currentPath.includes('index.html') && !currentPath.includes('registro.html')) {
-                window.location.href = 'index.html';
-            }
-        }
-    });
+        });
+    }
 });
-
-// Exponer funciones globalmente
-window.dispenseNow = dispenseNow;
-window.showNotification = showNotification;

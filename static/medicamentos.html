@@ -23,26 +23,20 @@
             </div>
         </header>
 
-        <!-- Botón ADD -->
         <section class="add-medicine-section">
-            <button id="show-add-modal" class="btn-add">
-                ➕ ADD Medicamento
-            </button>
+            <button id="show-add-modal" class="btn-add">➕ ADD Medicamento</button>
         </section>
 
-        <!-- Modal para agregar/editar -->
         <div id="medicine-modal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
                 <h2 id="modal-title">Agregar Medicamento</h2>
                 <form id="medicine-form">
                     <input type="hidden" id="medicine-id">
-
                     <div class="form-group">
                         <label>Nombre del medicamento</label>
                         <input type="text" id="med-name" required>
                     </div>
-
                     <div class="form-row">
                         <div class="form-group">
                             <label>Compartimento</label>
@@ -58,7 +52,6 @@
                             <input type="number" id="med-quantity" required>
                         </div>
                     </div>
-
                     <div class="form-row">
                         <div class="form-group">
                             <label>Unidad</label>
@@ -73,19 +66,16 @@
                             <input type="number" id="med-dose" step="0.5" required>
                         </div>
                     </div>
-
                     <div class="form-group">
                         <label>Horarios (ej: 08:00,14:00,20:00)</label>
                         <input type="text" id="med-schedules" placeholder="08:00,14:00,20:00" required>
                         <small>Separa cada horario con comas</small>
                     </div>
-
                     <button type="submit" class="btn-primary">Guardar Medicamento</button>
                 </form>
             </div>
         </div>
 
-        <!-- Lista de medicamentos -->
         <section class="medicines-list-section">
             <h2>📋 Mis Medicamentos</h2>
             <div id="medicines-grid" class="medicines-grid">
@@ -93,18 +83,70 @@
             </div>
         </section>
 
-        <!-- Navegación -->
         <nav class="bottom-nav">
             <a href="dashboard.html">📊 Dashboard</a>
             <a href="medicamentos.html" class="active">💊 Medicamentos</a>
             <a href="historial.html">📜 Historial</a>
+            <a href="perfil.html">👤 Perfil</a>
         </nav>
     </div>
 
-    <script src="firebase/config.js"></script>
-    <script src="firebase/auth.js"></script>
-    <script src="firebase/medicamentos.js"></script>
-    <script src="firebase/alarmas.js"></script>
-    <script src="app.js"></script>
+    <!-- RUTAS CORREGIDAS -->
+    <script src="pastillero/static/js/config.js"></script>
+    <script src="pastillero/static/js/auth.js"></script>
+    <script src="pastillero/static/js/medicamentos.js"></script>
+    <script src="pastillero/static/js/alarms.js"></script>
+    <script src="pastillero/static/js/contacto.js"></script>
+    <script src="pastillero/static/js/app.js"></script>
+
+    <script>
+        // Inicializar modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('medicine-modal');
+            const showBtn = document.getElementById('show-add-modal');
+            const closeBtn = document.querySelector('.close');
+            const form = document.getElementById('medicine-form');
+
+            if (showBtn) {
+                showBtn.onclick = () => {
+                    document.getElementById('modal-title').textContent = 'Agregar Medicamento';
+                    document.getElementById('medicine-id').value = '';
+                    if (form) form.reset();
+                    modal.style.display = 'block';
+                };
+            }
+
+            if (closeBtn) {
+                closeBtn.onclick = () => modal.style.display = 'none';
+            }
+
+            window.onclick = (e) => {
+                if (e.target === modal) modal.style.display = 'none';
+            };
+
+            if (form) {
+                form.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const medicineData = {
+                        name: document.getElementById('med-name').value,
+                        compartment: parseInt(document.getElementById('med-compartment').value),
+                        quantity: parseInt(document.getElementById('med-quantity').value),
+                        unit: document.getElementById('med-unit').value,
+                        dose: parseFloat(document.getElementById('med-dose').value),
+                        schedules: document.getElementById('med-schedules').value
+                    };
+
+                    if (typeof addMedicine === 'function') {
+                        await addMedicine(medicineData);
+                        modal.style.display = 'none';
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        console.error('addMedicine no está definida');
+                        alert('Error: addMedicine no está definida');
+                    }
+                };
+            }
+        });
+    </script>
 </body>
 </html>
