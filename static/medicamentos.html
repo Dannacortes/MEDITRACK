@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEDITRACK - Mis Medicamentos</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="main-header">
+            <div class="logo">
+                <h1>💊 MEDITRACK</h1>
+                <p>Gestión de medicamentos</p>
+            </div>
+            <div class="user-info">
+                <span id="user-name"></span>
+                <span id="user-email"></span>
+                <button id="logout-btn" class="btn-logout">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <!-- Botón ADD -->
+        <section class="add-medicine-section">
+            <button id="show-add-modal" class="btn-add">
+                ➕ ADD Medicamento
+            </button>
+        </section>
+
+        <!-- Modal para agregar/editar -->
+        <div id="medicine-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="modal-title">Agregar Medicamento</h2>
+                <form id="medicine-form">
+                    <input type="hidden" id="medicine-id">
+
+                    <div class="form-group">
+                        <label>Nombre del medicamento</label>
+                        <input type="text" id="med-name" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Compartimento</label>
+                            <select id="med-compartment" required>
+                                <option value="1">Compartimento 1</option>
+                                <option value="2">Compartimento 2</option>
+                                <option value="3">Compartimento 3</option>
+                                <option value="4">Compartimento 4</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad inicial</label>
+                            <input type="number" id="med-quantity" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Unidad</label>
+                            <select id="med-unit">
+                                <option value="pastilla">Pastilla(s)</option>
+                                <option value="ml">ml</option>
+                                <option value="gota">Gota(s)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Dosis por toma</label>
+                            <input type="number" id="med-dose" step="0.5" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Horarios (ej: 08:00,14:00,20:00)</label>
+                        <input type="text" id="med-schedules" placeholder="08:00,14:00,20:00" required>
+                        <small>Separa cada horario con comas</small>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Guardar Medicamento</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de medicamentos -->
+        <section class="medicines-list-section">
+            <h2>📋 Mis Medicamentos</h2>
+            <div id="medicines-grid" class="medicines-grid">
+                <div class="loading-text">Cargando...</div>
+            </div>
+        </section>
+
+        <!-- Navegación -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html">📊 Dashboard</a>
+            <a href="medicamentos.html" class="active">💊 Medicamentos</a>
+            <a href="historial.html">📜 Historial</a>
+        </nav>
+    </div>
+
+    <script src="firebase/config.js"></script>
+    <script src="firebase/auth.js"></script>
+    <script src="firebase/medicamentos.js"></script>
+    <script src="firebase/alarmas.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

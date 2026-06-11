@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEDITRACK - Historial</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="main-header">
+            <div class="logo">
+                <h1>💊 MEDITRACK</h1>
+                <p>Historial de medicación</p>
+            </div>
+            <div class="user-info">
+                <span id="user-name"></span>
+                <span id="user-email"></span>
+                <button id="logout-btn" class="btn-logout">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <!-- Filtros -->
+        <section class="filters-section">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>📅 Desde:</label>
+                    <input type="date" id="filter-date-from">
+                </div>
+                <div class="filter-group">
+                    <label>📅 Hasta:</label>
+                    <input type="date" id="filter-date-to">
+                </div>
+                <div class="filter-group">
+                    <label>💊 Compartimento:</label>
+                    <select id="filter-compartment">
+                        <option value="all">Todos</option>
+                        <option value="1">Compartimento 1</option>
+                        <option value="2">Compartimento 2</option>
+                        <option value="3">Compartimento 3</option>
+                        <option value="4">Compartimento 4</option>
+                    </select>
+                </div>
+                <button id="apply-filters" class="btn-filter">Aplicar Filtros</button>
+            </div>
+        </section>
+
+        <!-- Tabla de historial -->
+        <section class="history-table-section">
+            <h2>📜 Registro de Tomas</h2>
+            <div class="table-container">
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Medicamento</th>
+                            <th>Compartimento</th>
+                            <th>Dosis</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <tr><td colspan="5" class="loading-text">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Estadísticas -->
+        <section class="stats-section">
+            <h2>📊 Estadísticas</h2>
+            <div class="stats-grid" id="stats-grid">
+                <div class="loading-text">Calculando...</div>
+            </div>
+        </section>
+
+        <!-- Navegación -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html">📊 Dashboard</a>
+            <a href="medicamentos.html">💊 Medicamentos</a>
+            <a href="historial.html" class="active">📜 Historial</a>
+        </nav>
+    </div>
+
+    <script src="firebase/config.js"></script>
+    <script src="firebase/auth.js"></script>
+    <script src="firebase/historial.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
